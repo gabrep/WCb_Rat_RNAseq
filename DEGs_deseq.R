@@ -35,11 +35,47 @@ txi <- tximport(files,
 head(txi$counts)
 head(txi$length)
 txi$abundance
+write.csv(txi$abundance, 'tpm.txt')
+write.csv(group.order, 'groups.txt')
+
+
 
 dds <- DESeqDataSetFromTximport(txi,
                                 colData = group.order,
                                 design = ~ group)
-head(dds@assays@data$counts)
-dds@assays@data$avgTxLength
-dds
-  
+
+## sample filtering
+## dendrogram clusterization reveals that sample rna_1 shows unusual pattern compared to its groups
+dds <- dds[,-1]
+counts <- counts(dds)
+counts <- counts %>% as.data.frame %>% rownames_to_column('tx')
+keep <- rowSums(counts(dds) >= 10) >= 2
+sum(keep)
+dds <- dds[keep, ]
+
+dds <- DESeq(dds)
+res <- results(dds)
+res %>% as.data.frame %>%  View
+
+resultsNames(dds)
+shr.res <- lfcShrink(dds = dds, coef = "group_WCb75_vs_W")
+shr.res <- as.data.frame(shr.res)
+hist(res$pvalue)
+
+table(shr.res$padj < 0.05)
+
+##Gene annotation
+library(AnnotationDbi)
+library(org.Rn.eg.db)
+keytypes(org.Rn.eg.db)
+org.Rn.eg.db
+
+annot <- AnnotationDbi::select(org.Rn.eg.db, 
+                               keys = rownames(res),
+                               keytype = 'ENSEMBL',
+                               columns = c('GENENAME','SYMBOL','ENTREZID'))
+
+res <- as.data.frame(res) %>% rownames_to_column('ENSEMBL') %>% 
+  left_join(., annot)
+
+res %>% filter(abs(log2FoldChange) > 1, padj <0.05) %>% View
