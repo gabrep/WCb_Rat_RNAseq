@@ -24,7 +24,8 @@ files
 
 #Change files order to match the samples group
 group.order <- data.frame(samples = c('rna_1', 'rna_11', 'rna_3', 'rna_8', 'rna_9', 'rna_10'),
-                          group = c(rep('W', 3), rep('WCb75',3)))
+                          group = c(rep('W', 3), rep('WCb75',3)),
+                          sample_name = c ('W3','W1','W2','WCb1', 'WCb2', 'WCb3'))
 files <- files[match(group.order$samples, names(files))]
 
 txi <- tximport(files,
@@ -53,7 +54,7 @@ keep <- rowSums(counts(dds) >= 10) >= 2
 sum(keep)
 dds <- dds[keep, ]
 
-dds <- DESeq(dds)
+dds <- DESeq(dds, )
 res <- results(dds)
 res %>% as.data.frame %>%  View
 
@@ -77,9 +78,17 @@ annot <- AnnotationDbi::select(org.Rn.eg.db,
 
 res <- as.data.frame(res) %>% rownames_to_column('ENSEMBL') %>% 
   left_join(., annot)
+table(is.na(res$padj))
 
 shr.res <- shr.res %>% rownames_to_column('ENSEMBL') %>% 
   left_join(., annot)
+
+#some DEGs have NA padj
+#DESeq2 computs NA to adjusted p value if some sample count is detected as extreme outlier
+table(is.na(filter(shr.res, abs(log2FoldChange) > 1)$padj))
+#remove padj = NA for downstream analysis
+
+shr.res <- shr.res %>% filter(!is.na(padj))
 
 write.csv(res, 'DESeq2 res.txt')
 write.csv(shr.res, 'lfcShrink DESeq2 res.txt')
