@@ -62,7 +62,7 @@ shr.res <- lfcShrink(dds = dds, coef = "group_WCb75_vs_W")
 shr.res <- as.data.frame(shr.res)
 hist(res$pvalue)
 
-table(shr.res$padj < 0.05)
+table(abs(shr.res$log2FoldChange) > 1)
 
 ##Gene annotation
 library(AnnotationDbi)
@@ -78,4 +78,11 @@ annot <- AnnotationDbi::select(org.Rn.eg.db,
 res <- as.data.frame(res) %>% rownames_to_column('ENSEMBL') %>% 
   left_join(., annot)
 
-res %>% filter(abs(log2FoldChange) > 1, padj <0.05) %>% View
+shr.res <- shr.res %>% rownames_to_column('ENSEMBL') %>% 
+  left_join(., annot)
+
+write.csv(res, 'DESeq2 res.txt')
+write.csv(shr.res, 'lfcShrink DESeq2 res.txt')
+
+
+
