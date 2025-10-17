@@ -1,6 +1,6 @@
 library(pheatmap)
 library(factoextra);library(FactoMineR)
-
+library(EnhancedVolcano)
 ## Functions used to plot dendrogram and to run enrichment analysis can be pulled from https://github.com/gabrep/funcoes_R
 
 cores <- c('#ED5A99', '#20DBA4')
@@ -31,23 +31,48 @@ ggsave('figures/pca.png', width = 5, height = 4, dpi = 300)
 ann <- group.order %>% filter(!sample_name == 'W3') %>% dplyr::select(group, sample_name) %>% column_to_rownames('sample_name')
 ann$group <- factor(ann$group)
 levels(ann$group)
-pheatmap(na.omit(tpm[1:500,-1]),
+pheatmap(na.omit(tpm[,-1]),
          scale = 'row',
          show_rownames = F,
          treeheight_row = 0,
          cluster_cols = F,
          annotation_col = ann,
          annotation_colors = list(group=c('W' = cores[1], 'WCb75' = cores[2])),
-
-         color=colorRampPalette(c('deepskyblue3', 'lightblue', 'white','pink', 'firebrick1'))(100))
+         color=colorRampPalette(c('deepskyblue3', 'lightblue', 'white','pink', 'violetred'))(100))
 
 #Degs counts
 shr.res %>% filter(abs(log2FoldChange) > 1, padj < 0.05) %>% 
-  mutate(reg = ifelse(log2FoldChange > 0, 'up', 'down')) %>% 
+  mutate(reg = ifelse(log2FoldChange > 0, 'Up', 'Down')) %>% 
   ggplot(aes(reg, fill=reg))+
   geom_bar(color='black', width = .75)+
+  labs(y=NULL, x=NULL)+
   stat_count(geom = "text", colour = c("black", 'white'), size = 4, aes(label = ..count..), vjust=1.5)+
-  scale_fill_manual(values=c('white', 'navy'), name='Regulação')+
+  scale_fill_manual(values=c('white', 'seagreen'), guide='none')+
   theme_classic()+
   coord_cartesian(xlim=c(.5,2.5), expand = F, ylim = c(0,35))
-ggsave('figures/degs.png', width = 3.5, height = 3.5, dpi = 300)
+ggsave('figures/degs.png', width = 2.5, height = 3.5, dpi = 300)
+
+#volcano
+keyvals <- ifelse(shr.res$padj >= 0.05, "gray",
+                  ifelse(shr.res$log2FoldChange <= -1, cores[1],
+                         ifelse(shr.res$log2FoldChange >= 1, cores[2], "gray")))
+keyvals[is.na(keyvals)] <- "gray"
+names(keyvals)[keyvals == cores[2]] <- "Up-regulated"
+names(keyvals)[keyvals == "gray"] <- "Not significant"
+names(keyvals)[keyvals == cores[1]] <- "Down-regulated"
+
+EnhancedVolcano(shr.res,
+                x= 'log2FoldChange',
+                y='pvalue',
+                max.overlaps = Inf,
+                lab = shr.res$SYMBOL, 
+                labSize = 3, pointSize = 4,
+                pCutoffCol = 'padj',
+                colCustom = keyvals,
+                subtitle = NULL, caption = NULL, title=NULL,
+                FCcutoff = 1, pCutoff = 0.05)+
+  theme_classic()+
+  theme(legend.position = 'top',
+        legend.title = element_blank())+
+  coord_cartesian(xlim=c(-4,14), ylim=c(0,13))
+ggsave('figures/volcano.png', width = 6, height = 4)
