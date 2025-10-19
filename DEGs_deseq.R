@@ -49,12 +49,12 @@ dds <- DESeqDataSetFromTximport(txi,
 ## dendrogram clusterization reveals that sample rna_1 shows unusual pattern compared to its groups
 dds <- dds[,-1]
 counts <- counts(dds)
-counts <- counts %>% as.data.frame %>% rownames_to_column('tx')
 keep <- rowSums(counts(dds) >= 10) >= 2
 sum(keep)
 dds <- dds[keep, ]
 
-dds <- DESeq(dds, )
+dds <- DESeq(dds)
+
 res <- results(dds)
 res %>% as.data.frame %>%  View
 
@@ -82,6 +82,8 @@ table(is.na(res$padj))
 
 shr.res <- shr.res %>% rownames_to_column('ENSEMBL') %>% 
   left_join(., annot)
+
+shr.res <- shr.res %>% mutate(Gene=ifelse(is.na(SYMBOL), ENSEMBL, SYMBOL))
 
 #some DEGs have NA padj
 #DESeq2 computs NA to adjusted p value if some sample count is detected as extreme outlier

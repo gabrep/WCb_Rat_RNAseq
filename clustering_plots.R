@@ -4,6 +4,8 @@ library(EnhancedVolcano)
 ## Functions used to plot dendrogram and to run enrichment analysis can be pulled from https://github.com/gabrep/funcoes_R
 
 cores <- c('#ED5A99', '#20DBA4')
+rld <- rlog(counts)
+colnames(rld) <- group.order$sample_name[-1] #-1 to remove the excluded sample
 
 ##dendrogram 
 tpm <- read.csv('tpm.csv')
@@ -15,7 +17,7 @@ source('../../../Doutorado/Bioinformática/funcoes_R/color_dend.R')
 color_dend(tpm[,-1], group.order$group[-1], col_branches = F, cores_dend = cores)
 
 ##PCA
-pca <- PCA(t(tpm[,-1]), graph=F)
+pca <- PCA(t(rld), graph=F)
 
 fviz_pca_ind(pca, title='',
              geom = 'point', pointshape=21, pointsize=4,
@@ -31,15 +33,17 @@ ggsave('figures/pca.png', width = 5, height = 4, dpi = 300)
 ann <- group.order %>% filter(!sample_name == 'W3') %>% dplyr::select(group, sample_name) %>% column_to_rownames('sample_name')
 ann$group <- factor(ann$group)
 levels(ann$group)
-pheatmap(na.omit(tpm[,-1]),
+colnames(ann) <- 'Grupo'
+pdf('figures/heatmap.pdf', width = 4, height = 5)
+pheatmap(na.omit(rld),
          scale = 'row',
          show_rownames = F,
          treeheight_row = 0,
-         cluster_cols = F,
+         cluster_cols = T, clustering_distance_cols = 'euclidean',
          annotation_col = ann,
-         annotation_colors = list(group=c('W' = cores[1], 'WCb75' = cores[2])),
+         annotation_colors = list(Grupo=c('W' = cores[1], 'WCb75' = cores[2])),
          color=colorRampPalette(c('deepskyblue3', 'lightblue', 'white','pink', 'violetred'))(100))
-
+dev.off()
 #Degs counts
 shr.res %>% filter(abs(log2FoldChange) > 1, padj < 0.05) %>% 
   mutate(reg = ifelse(log2FoldChange > 0, 'Up', 'Down')) %>% 
@@ -65,7 +69,7 @@ EnhancedVolcano(shr.res,
                 x= 'log2FoldChange',
                 y='pvalue',
                 max.overlaps = Inf,
-                lab = shr.res$SYMBOL, 
+                lab = shr.res$Gene, 
                 labSize = 3, pointSize = 4,
                 pCutoffCol = 'padj',
                 colCustom = keyvals,
@@ -74,5 +78,5 @@ EnhancedVolcano(shr.res,
   theme_classic()+
   theme(legend.position = 'top',
         legend.title = element_blank())+
-  coord_cartesian(xlim=c(-4,14), ylim=c(0,13))
+  coord_cartesian(xlim=c(-4,10), ylim=c(0,12.5))
 ggsave('figures/volcano.png', width = 6, height = 4)
