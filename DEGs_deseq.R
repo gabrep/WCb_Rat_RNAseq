@@ -86,7 +86,7 @@ shr.res <- shr.res %>% rownames_to_column('ENSEMBL') %>%
 shr.res <- shr.res %>% mutate(Gene=ifelse(is.na(SYMBOL), ENSEMBL, SYMBOL))
 
 #some DEGs have NA padj
-#DESeq2 computs NA to adjusted p value if some sample count is detected as extreme outlier
+#DESeq2 computs NA to adjusted p value if some sample counts are detected as extreme outlier
 table(is.na(filter(shr.res, abs(log2FoldChange) > 1)$padj))
 #remove padj = NA for downstream analysis
 
@@ -95,5 +95,11 @@ shr.res <- shr.res %>% filter(!is.na(padj))
 write.csv(res, 'DESeq2 res.txt')
 write.csv(shr.res, 'lfcShrink DESeq2 res.txt')
 
+dim(shr.res)
+
+degs <- shr.res %>% filter(abs(log2FoldChange) >= 1, padj <= 0.05)
+degs <- degs[order(degs$log2FoldChange, decreasing = T),]  
+writexl::write_xlsx(degs, 'DEGs.xlsx')
 
 
+plotCounts(dds, gene = 'ENSRNOG00000028137', intgroup = dds@colData$group)

@@ -38,7 +38,7 @@ pdf('figures/heatmap.pdf', width = 4, height = 5)
 pheatmap(na.omit(rld),
          scale = 'row',
          show_rownames = F,
-         treeheight_row = 0,
+         #treeheight_row = 0,
          cluster_cols = T, clustering_distance_cols = 'euclidean',
          annotation_col = ann,
          annotation_colors = list(Grupo=c('W' = cores[1], 'WCb75' = cores[2])),

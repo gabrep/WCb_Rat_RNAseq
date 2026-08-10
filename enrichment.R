@@ -62,3 +62,7 @@ ggsave('figures/treeplot go up.png', width = 18, height = 8)
 
 #GSEA
 gsea.shr <- run_GSEA(shr.res, org = 'Rattus norvegicus')
+
+writexl::write_xlsx(go.up, 'Gene Ontology_UP.xlsx')
+writexl::write_xlsx(go.down, 'Gene Ontology_DOWN.xlsx')
+writexl::write_xlsx(annot, 'Genes_anotação.xlsx')
